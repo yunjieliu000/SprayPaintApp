@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="5">
-            <Button Content="Open Image"/>
+            <Button Content="Open Image" Click="OpenImage_Click"/>
             <Button Content="Erase Paint" />
             <Button Content="Save Changes"/>
             <ComboBox x:Name="Colors" Width="100" SelectedIndex="0">
