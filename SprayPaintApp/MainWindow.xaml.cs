@@ -23,7 +23,9 @@ namespace SprayPaintApp
         private string sprayPointsFilePath;
         private List<Point> sprayedPoints = new List<Point>();
         private bool isPainting = false;
+        private bool isSpraying = false;
         private bool isErasing = false;
+        private bool isMousePressed = false;
         private Point lastMousePosition;
         private int currDens = 10;
         private SolidColorBrush currBrush = Brushes.Red;
@@ -59,15 +61,36 @@ namespace SprayPaintApp
             }
         }
 
+        private void Spray_Click(object sender, RoutedEventArgs e)
+        {
+            isSpraying = true;
+            isErasing = false;
+
+            MessageBox.Show("Spraying Activated. Move the mouse to start spraying.", "Spray Mode", MessageBoxButton.OK, MessageBoxImage.Information); ;
+
+        }
+
         private void EraseButton_Click(object sender, RoutedEventArgs e)
         {
-            isErasing = !isErasing;
+            isErasing = true;
+            isSpraying = false;
 
-            if (isErasing)
+            MessageBox.Show("Eraser Activated. Click on Spray to Erase.", "Eraser Mode", MessageBoxButton.OK, MessageBoxImage.Information); ;
+        }
+
+        private void SaveChanges_Click(object sender, RoutedEventArgs e)
+        {
+            try
             {
-                MessageBox.Show("Eraser Activated. Click on Spray to Erase.", "Eraaser Mode", MessageBoxButton.OK, MessageBoxImage.Information); ;
+//TODO: Add code to save file
+                MessageBox.Show("Changes saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Error saving changes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private string GetSprayPointsFilePath(string originalImagePath)
         {
@@ -106,14 +129,19 @@ namespace SprayPaintApp
 
         private void DrawingCanvas_MouseDown(object sender, MouseEventArgs e)
         {
-            if (isErasing)
+            if (isSpraying || isErasing)
             {
-                EraseSpray(e.GetPosition(DrawingCanvas));
-            }
-            else
-            {
-                isPainting = true;
-                lastMousePosition = e.GetPosition(DrawingCanvas);
+                isMousePressed = true;
+                Point mousePos = e.GetPosition(DrawingCanvas);
+
+                if (isSpraying)
+                {
+                    SprayPaint(mousePos);
+                }
+                else if (isErasing)
+                {
+                    EraseSpray(mousePos);
+                }
             }
 
         }
@@ -122,13 +150,13 @@ namespace SprayPaintApp
         {
             try
             {
-                if (isPainting)
+                if (isSpraying && isMousePressed)
                 {
                     Point currPos = e.GetPosition(DrawingCanvas);
                     SprayPaint(currPos);
                     lastMousePosition = currPos;
                 }
-                else if (isErasing)
+                else if (isErasing && isMousePressed)
                 {
                     EraseSpray(e.GetPosition(DrawingCanvas));
                 }
@@ -136,13 +164,13 @@ namespace SprayPaintApp
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error wile painting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error wile spraying: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void DrawingCanvas_MouseUp(object sender, MouseEventArgs e)
         {
-            isPainting = false;
+            isMousePressed = false;
         }
 
         private void SprayPaint(Point pos)
