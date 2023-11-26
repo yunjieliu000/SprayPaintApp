@@ -7,6 +7,22 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height ="*" />
+        </Grid.RowDefinitions>
 
+        <StackPanel Orientation="Horizontal" Margin="5">
+            <Button Content="Open Image"/>
+            <Button Content="Erase Paint" />
+            <Button Content="Save Changes"/>
+            <ComboBox x:Name="Colors" Width="100" SelectedIndex="0">
+                <ComboBoxItem Content="Red" />
+                <ComboBoxItem Content="Green" />
+                <ComboBoxItem Content="Blue" />
+            </ComboBox>
+            <Slider x:Name="Density" Width="100" Minimum="1" Maximum="100" Value="50" />
+        </StackPanel>
+        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="White" />
     </Grid>
 </Window>
