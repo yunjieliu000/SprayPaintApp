@@ -23,6 +23,7 @@ namespace SprayPaintApp
         private string sprayPointsFilePath;
         private List<Point> sprayedPoints = new List<Point>();
         private bool isPainting = false;
+        private bool isErasing = false;
         private Point lastMousePosition;
         private int currDens = 10;
         private SolidColorBrush currBrush = Brushes.Red;
@@ -55,6 +56,16 @@ namespace SprayPaintApp
             catch (Exception ex)
             {
                 MessageBox.Show($"Error opening image:{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void EraseButton_Click(object sender, RoutedEventArgs e)
+        {
+            isErasing = !isErasing;
+
+            if (isErasing)
+            {
+                MessageBox.Show("Eraser Activated. Click on Spray to Erase.", "Eraaser Mode", MessageBoxButton.OK, MessageBoxImage.Information); ;
             }
         }
 
@@ -95,8 +106,16 @@ namespace SprayPaintApp
 
         private void DrawingCanvas_MouseDown(object sender, MouseEventArgs e)
         {
-            isPainting = true;
-            lastMousePosition = e.GetPosition(DrawingCanvas);
+            if (isErasing)
+            {
+                EraseSpray(e.GetPosition(DrawingCanvas));
+            }
+            else
+            {
+                isPainting = true;
+                lastMousePosition = e.GetPosition(DrawingCanvas);
+            }
+
         }
 
         private void DrawingCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -108,6 +127,10 @@ namespace SprayPaintApp
                     Point currPos = e.GetPosition(DrawingCanvas);
                     SprayPaint(currPos);
                     lastMousePosition = currPos;
+                }
+                else if (isErasing)
+                {
+                    EraseSpray(e.GetPosition(DrawingCanvas));
                 }
 
             }
@@ -148,14 +171,46 @@ namespace SprayPaintApp
 ;
         }
 
-        private void DrawingCanvas_MouseDown_1(object sender, MouseButtonEventArgs e)
+        private void EraseSpray(Point pos)
         {
+            double eraseRadius = 10.0;
 
+            var pointsToErase = sprayedPoints.FindAll(point =>
+            {
+                double dist = Math.Sqrt(Math.Pow(point.X - pos.X, 2) + Math.Pow(point.Y - pos.Y, 2));
+                return dist <= eraseRadius;
+            });
+
+            foreach (var point in pointsToErase)
+            {
+                Ellipse sprayPoint = FindEllipseAt(point);
+                if (sprayPoint != null)
+                {
+                    DrawingCanvas.Children.Remove(sprayPoint) ;
+                }
+                sprayedPoints.Remove(point);
+            }
         }
 
-        private void DrawingCanvas_MouseUp_1(object sender, MouseButtonEventArgs e)
+        private Ellipse FindEllipseAt(Point point)
         {
+            foreach (UIElement element in DrawingCanvas.Children)
+            {
+                if (element is Ellipse ellipse)
+                {
+                    Point ellPosition = ellipse.TranslatePoint(new Point(0, 0), DrawingCanvas); 
+                    double dist = Math.Sqrt(Math.Pow(ellPosition.X - point.X, 2) + Math.Pow(ellPosition.Y - point.Y, 2));
 
+                    if (dist <= ellipse.Width)
+                    {
+                        return ellipse;
+                    }
+
+                }
+            }
+            return null;
         }
+
+
     }
 }

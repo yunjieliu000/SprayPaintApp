@@ -14,7 +14,7 @@
 
         <StackPanel Orientation="Horizontal" Margin="5">
             <Button Content="Open Image" Click="OpenImage_Click"/>
-            <Button Content="Erase Paint" />
+            <Button Content="Erase Paint" Click="EraseButton_Click"/>
             <Button Content="Save Changes"/>
             <ComboBox x:Name="Colors" Width="100" SelectedIndex="0">
                 <ComboBoxItem Content="Red" />
