@@ -21,8 +21,8 @@
                 <ComboBoxItem Content="Green" />
                 <ComboBoxItem Content="Blue" />
             </ComboBox>
-            <Slider x:Name="Density" Width="100" Minimum="1" Maximum="100" Value="50" />
+            <Slider x:Name="Density" Width="100" Minimum="1" Maximum="100" Value="10" />
         </StackPanel>
-        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="White" />
+        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="White" MouseDown = "DrawingCanvas_MouseDown" MouseMove="DrawingCanvas_MouseMove" MouseUp = "DrawingCanvas_MouseUp" />
     </Grid>
 </Window>

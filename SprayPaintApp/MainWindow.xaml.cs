@@ -22,6 +22,10 @@ namespace SprayPaintApp
         private string originalImagePath;
         private string sprayPointsFilePath;
         private List<Point> sprayedPoints = new List<Point>();
+        private bool isPainting = false;
+        private Point lastMousePosition;
+        private int currDens = 10;
+        private SolidColorBrush currBrush = Brushes.Red;
         
         public MainWindow()
         {
@@ -87,6 +91,71 @@ namespace SprayPaintApp
                     MessageBox.Show($"Error loading spray points: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        private void DrawingCanvas_MouseDown(object sender, MouseEventArgs e)
+        {
+            isPainting = true;
+            lastMousePosition = e.GetPosition(DrawingCanvas);
+        }
+
+        private void DrawingCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            try
+            {
+                if (isPainting)
+                {
+                    Point currPos = e.GetPosition(DrawingCanvas);
+                    SprayPaint(currPos);
+                    lastMousePosition = currPos;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error wile painting: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void DrawingCanvas_MouseUp(object sender, MouseEventArgs e)
+        {
+            isPainting = false;
+        }
+
+        private void SprayPaint(Point pos)
+        {
+            Random ran = new Random();
+            int density = currDens;
+
+            for (int i = 0; i < density; i++)
+            {
+                double offsetX = ran.Next(-10, 10);
+                double offsetY = ran.Next(-10, 10);
+
+                Point sprayPoint = new Point(pos.X + offsetX, pos.Y + offsetY);
+
+                Ellipse ellipse = new Ellipse
+                {
+                    Width = 5,
+                    Height = 5,
+                    Fill = currBrush,
+                    Margin = new Thickness(sprayPoint.X, sprayPoint.Y, 0, 0)
+                };
+
+                DrawingCanvas.Children.Add(ellipse);
+                sprayedPoints.Add(sprayPoint);
+            }
+;
+        }
+
+        private void DrawingCanvas_MouseDown_1(object sender, MouseButtonEventArgs e)
+        {
+
+        }
+
+        private void DrawingCanvas_MouseUp_1(object sender, MouseButtonEventArgs e)
+        {
+
         }
     }
 }
