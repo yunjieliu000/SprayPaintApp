@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
+using System.Windows.Markup;
 
 namespace SprayPaintApp
 {
@@ -46,18 +47,32 @@ namespace SprayPaintApp
                 if (openFileDialog.ShowDialog() == true)
                 {
                     originalImagePath = openFileDialog.FileName;
-                    sprayPointsFilePath = GetSprayPointsFilePath(originalImagePath);
 
-                    BitmapImage bitmap = new BitmapImage(new Uri(originalImagePath));
-                    DrawingCanvas.Background = new ImageBrush(bitmap);
-
-                    LoadSprayPoints();
+                    ClearSprayedPoints();
+                    LoadImage(originalImagePath);
+                    LoadSprayPoints(originalImagePath);
 
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error opening image:{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadImage(string imagePath)
+        {
+            try
+            {
+
+                    ClearSprayedPoints();
+                    BitmapImage bitmap = new BitmapImage(new Uri(imagePath));
+                    DrawingCanvas.Background = new ImageBrush(bitmap);
+                    sprayedPoints.Clear();
+            }
+            catch(Exception ex)
+            {
+                throw new Exception($"Error loading image: {ex.Message}");
             }
         }
 
@@ -82,12 +97,48 @@ namespace SprayPaintApp
         {
             try
             {
-//TODO: Add code to save file
+                //TODO: Add code to save file
+                SaveImageWithSpray(originalImagePath);
                 MessageBox.Show("Changes saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch(Exception ex)
             {
                 MessageBox.Show($"Error saving changes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveImageWithSpray(string imagePath)
+        {
+            //sprayedPoints.Clear();
+
+            try
+            {
+                saveSprayPoints(sprayPointsFilePath + ".spray");
+
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Error saving changes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+            }
+        }
+
+        private void saveSprayPoints(string filePath)
+        {
+            try
+            {
+                Console.WriteLine($"Saving to {filePath}");
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    foreach (Point point in sprayedPoints)
+                    {
+                        writer.WriteLine($"{point.X},{point.Y}");
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                throw new Exception($"Error saving pray points to file: {ex.Message}");
             }
         }
 
@@ -99,23 +150,20 @@ namespace SprayPaintApp
             return System.IO.Path.Combine(directory, filename);
         }
 
-        private void LoadSprayPoints()
+        private void LoadSprayPoints(string originalImagePath)
         {
             if (File.Exists(sprayPointsFilePath))
             {
                 try
                 {
-                    sprayedPoints.Clear();
-                    using (StreamReader sr = new StreamReader(sprayPointsFilePath))
+                    string sprayPointsFilePath = originalImagePath + ".spray";
+                    if (File.Exists(sprayPointsFilePath))
                     {
-                        string line;
-                        while((line = sr.ReadLine()) != null)
+                        List<Point> loadedSprayPoints = LoadSprayPointsFromFile(sprayPointsFilePath);
+                        ClearSprayedPoints();
+                        foreach(Point point in loadedSprayPoints)
                         {
-                            string[] coordinates = line.Split(",");
-                            if (coordinates.Length == 2 && double.TryParse(coordinates[0], out double x) && double.TryParse(coordinates[1], out double y))
-                            {
-                                sprayedPoints.Add(new Point(x, y));
-                            }
+                            SprayPaint(point);
                         }
                     }
 
@@ -125,6 +173,36 @@ namespace SprayPaintApp
                     MessageBox.Show($"Error loading spray points: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        private List<Point> LoadSprayPointsFromFile(string filePath)
+        {
+            List<Point> loadedSprayPoints = new List<Point>();
+
+            try
+            {
+                string[] lines = File.ReadAllLines(filePath);
+                foreach (string line in lines)
+                {
+                    string[] coordinates = line.Split(',');
+                    if (coordinates.Length == 2 && double.TryParse(coordinates[0], out double x) && double.TryParse(coordinates[1], out double y))
+                    {
+                        loadedSprayPoints.Add(new Point(x, y));
+                    }
+                }
+            }
+
+            catch(Exception ex)
+            {
+                throw new Exception($"Error loading spray points from file: {ex.Message}");
+            }
+
+            return loadedSprayPoints;
+        }
+
+        private void ClearSprayedPoints()
+        {
+            DrawingCanvas.Children.Clear();
         }
 
         private void DrawingCanvas_MouseDown(object sender, MouseEventArgs e)
@@ -150,16 +228,18 @@ namespace SprayPaintApp
         {
             try
             {
+                Point currPos = e.GetPosition(DrawingCanvas);
                 if (isSpraying && isMousePressed)
                 {
-                    Point currPos = e.GetPosition(DrawingCanvas);
                     SprayPaint(currPos);
                     lastMousePosition = currPos;
                 }
                 else if (isErasing && isMousePressed)
                 {
-                    EraseSpray(e.GetPosition(DrawingCanvas));
+                    EraseSpray(currPos);
                 }
+                lastMousePosition = currPos;
+
 
             }
             catch (Exception ex)
@@ -175,8 +255,11 @@ namespace SprayPaintApp
 
         private void SprayPaint(Point pos)
         {
+            string colorString = (Colors.SelectedItem as ComboBoxItem)?.Content.ToString();
+            Color selectedColor = (Color)ColorConverter.ConvertFromString(colorString);
+            currBrush = new SolidColorBrush(selectedColor);
             Random ran = new Random();
-            int density = currDens;
+            double density = Density.Value;
 
             for (int i = 0; i < density; i++)
             {
@@ -187,8 +270,8 @@ namespace SprayPaintApp
 
                 Ellipse ellipse = new Ellipse
                 {
-                    Width = 5,
-                    Height = 5,
+                    Width = density,
+                    Height = density,
                     Fill = currBrush,
                     Margin = new Thickness(sprayPoint.X, sprayPoint.Y, 0, 0)
                 };

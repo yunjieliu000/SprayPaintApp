@@ -16,7 +16,7 @@
             <Button Content="Open Image" Click="OpenImage_Click"/>
             <Button Content="Spray" Click="Spray_Click" />
             <Button Content="Erase Paint" Click="EraseButton_Click"/>
-            <Button Content="Save Changes"/>
+            <Button Content="Save Changes" Click="SaveChanges_Click"/>
             <ComboBox x:Name="Colors" Width="100" SelectedIndex="0">
                 <ComboBoxItem Content="Red" />
                 <ComboBoxItem Content="Green" />
