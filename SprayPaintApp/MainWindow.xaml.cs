@@ -113,7 +113,8 @@ namespace SprayPaintApp
 
             try
             {
-                saveSprayPoints(sprayPointsFilePath + ".spray");
+                
+                saveSprayPoints(GetSprayPointsFilePath(imagePath));
 
             }
             catch(Exception ex)
@@ -152,11 +153,11 @@ namespace SprayPaintApp
 
         private void LoadSprayPoints(string originalImagePath)
         {
-            if (File.Exists(sprayPointsFilePath))
+            if (File.Exists(GetSprayPointsFilePath(originalImagePath)))
             {
                 try
                 {
-                    string sprayPointsFilePath = originalImagePath + ".spray";
+                    string sprayPointsFilePath = GetSprayPointsFilePath(originalImagePath);
                     if (File.Exists(sprayPointsFilePath))
                     {
                         List<Point> loadedSprayPoints = LoadSprayPointsFromFile(sprayPointsFilePath);
