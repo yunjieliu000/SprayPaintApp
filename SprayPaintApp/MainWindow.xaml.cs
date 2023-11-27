@@ -12,35 +12,30 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
 using System.Windows.Markup;
+using System.Globalization;
 
 namespace SprayPaintApp
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
+
     public partial class MainWindow : Window
     {
         private string originalImagePath;
-        private string sprayPointsFilePath;
-        private List<Point> sprayedPoints = new List<Point>();
-        private bool isPainting = false;
+        private List<SprayPoint> sprayedPoints = new List<SprayPoint>();
         private bool isSpraying = false;
         private bool isErasing = false;
         private bool isMousePressed = false;
-        private Point lastMousePosition;
-        private int currDens = 10;
-        private SolidColorBrush currBrush = Brushes.Red;
+        private SprayPoint lastMousePosition;
         
         public MainWindow()
         {
             InitializeComponent();
         }
 
+        // Event Handler for opening the image
         private void OpenImage_Click(Object sender,  RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Image Files|* .jpg;*.jpeg;*.png;*|ALL Files|*.*";
-
 
             try
             {
@@ -48,34 +43,21 @@ namespace SprayPaintApp
                 {
                     originalImagePath = openFileDialog.FileName;
 
-                    ClearSprayedPoints();
+                    SprayHelper.ClearSprayedPoints(DrawingCanvas);
                     LoadImage(originalImagePath);
                     LoadSprayPoints(originalImagePath);
-
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error opening image:{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ErrorLogger.LogError($"Open Image Error: {ex.Message}");
             }
         }
 
-        private void LoadImage(string imagePath)
-        {
-            try
-            {
+        // Method to load the Image given file path
 
-                    ClearSprayedPoints();
-                    BitmapImage bitmap = new BitmapImage(new Uri(imagePath));
-                    DrawingCanvas.Background = new ImageBrush(bitmap);
-                    sprayedPoints.Clear();
-            }
-            catch(Exception ex)
-            {
-                throw new Exception($"Error loading image: {ex.Message}");
-            }
-        }
-
+        // Event handler for the spray button
         private void Spray_Click(object sender, RoutedEventArgs e)
         {
             isSpraying = true;
@@ -85,180 +67,117 @@ namespace SprayPaintApp
 
         }
 
+        // Event handler for erase buton
         private void EraseButton_Click(object sender, RoutedEventArgs e)
         {
             isErasing = true;
             isSpraying = false;
 
-            MessageBox.Show("Eraser Activated. Click on Spray to Erase.", "Eraser Mode", MessageBoxButton.OK, MessageBoxImage.Information); ;
+            MessageBox.Show("Eraser Activated. Click to Erase.", "Eraser Mode", MessageBoxButton.OK, MessageBoxImage.Information); ;
         }
 
+        // Event handler to save changes
         private void SaveChanges_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                //TODO: Add code to save file
                 SaveImageWithSpray(originalImagePath);
                 MessageBox.Show("Changes saved successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch(Exception ex)
             {
                 MessageBox.Show($"Error saving changes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void SaveImageWithSpray(string imagePath)
-        {
-            //sprayedPoints.Clear();
-
-            try
-            {
-                
-                saveSprayPoints(GetSprayPointsFilePath(imagePath));
-
-            }
-            catch(Exception ex)
-            {
-                MessageBox.Show($"Error saving changes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-            }
-        }
-
-        private void saveSprayPoints(string filePath)
-        {
-            try
-            {
-                Console.WriteLine($"Saving to {filePath}");
-                using (StreamWriter writer = new StreamWriter(filePath))
-                {
-                    foreach (Point point in sprayedPoints)
-                    {
-                        writer.WriteLine($"{point.X},{point.Y}");
-                    }
-                }
-            }
-            catch(Exception ex)
-            {
-                throw new Exception($"Error saving pray points to file: {ex.Message}");
+                ErrorLogger.LogError($"Save Changes Error: {ex.Message}");
             }
         }
 
 
-        private string GetSprayPointsFilePath(string originalImagePath)
-        {
-            string directory = System.IO.Path.GetDirectoryName(originalImagePath);
-            string filename = System.IO.Path.GetFileNameWithoutExtension(originalImagePath) + "_spray.txt";
-            return System.IO.Path.Combine(directory, filename);
-        }
-
-        private void LoadSprayPoints(string originalImagePath)
-        {
-            if (File.Exists(GetSprayPointsFilePath(originalImagePath)))
-            {
-                try
-                {
-                    string sprayPointsFilePath = GetSprayPointsFilePath(originalImagePath);
-                    if (File.Exists(sprayPointsFilePath))
-                    {
-                        List<Point> loadedSprayPoints = LoadSprayPointsFromFile(sprayPointsFilePath);
-                        ClearSprayedPoints();
-                        foreach(Point point in loadedSprayPoints)
-                        {
-                            SprayPaint(point);
-                        }
-                    }
-
-                }
-                catch(Exception ex)
-                {
-                    MessageBox.Show($"Error loading spray points: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-
-        private List<Point> LoadSprayPointsFromFile(string filePath)
-        {
-            List<Point> loadedSprayPoints = new List<Point>();
-
-            try
-            {
-                string[] lines = File.ReadAllLines(filePath);
-                foreach (string line in lines)
-                {
-                    string[] coordinates = line.Split(',');
-                    if (coordinates.Length == 2 && double.TryParse(coordinates[0], out double x) && double.TryParse(coordinates[1], out double y))
-                    {
-                        loadedSprayPoints.Add(new Point(x, y));
-                    }
-                }
-            }
-
-            catch(Exception ex)
-            {
-                throw new Exception($"Error loading spray points from file: {ex.Message}");
-            }
-
-            return loadedSprayPoints;
-        }
-
-        private void ClearSprayedPoints()
-        {
-            DrawingCanvas.Children.Clear();
-        }
-
+        // Event Handler for Canvas MouseDown Event
         private void DrawingCanvas_MouseDown(object sender, MouseEventArgs e)
         {
             if (isSpraying || isErasing)
             {
                 isMousePressed = true;
                 Point mousePos = e.GetPosition(DrawingCanvas);
+                SprayPoint mouseSprayPos = new SprayPoint(mousePos.X, mousePos.Y, "");
 
                 if (isSpraying)
                 {
-                    SprayPaint(mousePos);
+                    SprayPaint(mouseSprayPos);
                 }
                 else if (isErasing)
                 {
-                    EraseSpray(mousePos);
+                    EraseSpray(mouseSprayPos);
                 }
             }
 
         }
 
+        // Event handler for Canvas MouseMove event
         private void DrawingCanvas_MouseMove(object sender, MouseEventArgs e)
         {
             try
             {
                 Point currPos = e.GetPosition(DrawingCanvas);
+                SprayPoint mouseCurrPos = new SprayPoint(currPos.X, currPos.Y, "");
+
                 if (isSpraying && isMousePressed)
                 {
-                    SprayPaint(currPos);
-                    lastMousePosition = currPos;
+                    SprayPaint(mouseCurrPos);
+                    lastMousePosition = mouseCurrPos;
                 }
                 else if (isErasing && isMousePressed)
                 {
-                    EraseSpray(currPos);
+                    EraseSpray(mouseCurrPos);
+                    lastMousePosition = mouseCurrPos;
                 }
-                lastMousePosition = currPos;
-
 
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error wile spraying: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ErrorLogger.LogError($"Mouse Move Error: {ex.Message}");
             }
         }
 
+
+        // Event handler for Canvas MouseUp event
         private void DrawingCanvas_MouseUp(object sender, MouseEventArgs e)
         {
             isMousePressed = false;
         }
 
-        private void SprayPaint(Point pos)
+        // Method to load the Image given file path
+        private void LoadImage(string imagePath)
         {
-            string colorString = (Colors.SelectedItem as ComboBoxItem)?.Content.ToString();
-            Color selectedColor = (Color)ColorConverter.ConvertFromString(colorString);
-            currBrush = new SolidColorBrush(selectedColor);
+            try
+            {
+
+                SprayHelper.ClearSprayedPoints(DrawingCanvas);
+                BitmapImage bitmap = new BitmapImage(new Uri(imagePath));
+                DrawingCanvas.Background = new ImageBrush(bitmap);
+                sprayedPoints.Clear();
+            }
+            catch (Exception ex)
+            {
+                ErrorLogger.LogError($"Load Image Error: {ex.Message}");
+                throw new Exception($"Error loading image: {ex.Message}");
+            }
+        }
+
+        // Method to spray points on canvas
+        public void SprayPaint(SprayPoint pos, String state = "paint")
+        {
+            string selectedColor;
+            if (state.Equals("repaint"))
+            {
+                selectedColor = pos.PointColor;
+            }
+            else
+            {
+                selectedColor = (Colors.SelectedItem as ComboBoxItem)?.Content.ToString();
+            }
+
             Random ran = new Random();
             double density = Density.Value;
 
@@ -267,14 +186,16 @@ namespace SprayPaintApp
                 double offsetX = ran.Next(-10, 10);
                 double offsetY = ran.Next(-10, 10);
 
-                Point sprayPoint = new Point(pos.X + offsetX, pos.Y + offsetY);
+                SprayPoint sprayPoint = new SprayPoint(pos.X + offsetX, pos.Y + offsetY, selectedColor);
+                Color currColor = (Color)ColorConverter.ConvertFromString(selectedColor);
+                Brush currBrush = new SolidColorBrush(currColor);
 
                 Ellipse ellipse = new Ellipse
                 {
                     Width = density,
                     Height = density,
                     Fill = currBrush,
-                    Margin = new Thickness(sprayPoint.X, sprayPoint.Y, 0, 0)
+                    Margin = new Thickness(sprayPoint.X - 10, sprayPoint.Y - 10, 0, 0)
                 };
 
                 DrawingCanvas.Children.Add(ellipse);
@@ -283,9 +204,10 @@ namespace SprayPaintApp
 ;
         }
 
-        private void EraseSpray(Point pos)
+        // Method to erase sprayed points on Canvas
+        public void EraseSpray(SprayPoint pos)
         {
-            double eraseRadius = 10.0;
+            double eraseRadius = Density.Value;
 
             var pointsToErase = sprayedPoints.FindAll(point =>
             {
@@ -293,36 +215,75 @@ namespace SprayPaintApp
                 return dist <= eraseRadius;
             });
 
-            foreach (var point in pointsToErase)
+            foreach (var Spraypoint in pointsToErase)
             {
-                Ellipse sprayPoint = FindEllipseAt(point);
+                Ellipse sprayPoint = SprayHelper.FindEllipseAt(Spraypoint, DrawingCanvas);
                 if (sprayPoint != null)
                 {
-                    DrawingCanvas.Children.Remove(sprayPoint) ;
+                    DrawingCanvas.Children.Remove(sprayPoint);
                 }
-                sprayedPoints.Remove(point);
+                sprayedPoints.Remove(Spraypoint);
             }
         }
 
-        private Ellipse FindEllipseAt(Point point)
+
+        // Method to Save sprayed points
+        private void SaveImageWithSpray(string imagePath)
         {
-            foreach (UIElement element in DrawingCanvas.Children)
+            try
             {
-                if (element is Ellipse ellipse)
-                {
-                    Point ellPosition = ellipse.TranslatePoint(new Point(0, 0), DrawingCanvas); 
-                    double dist = Math.Sqrt(Math.Pow(ellPosition.X - point.X, 2) + Math.Pow(ellPosition.Y - point.Y, 2));
-
-                    if (dist <= ellipse.Width)
-                    {
-                        return ellipse;
-                    }
-
-                }
+                saveSprayPoints(SprayHelper.GetSprayPointsFilePath(imagePath));
             }
-            return null;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving changes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ErrorLogger.LogError($"Saving Changes Error: {ex.Message}");
+            }
         }
 
+        // Method to write all the sprayed point as a file
+        private void saveSprayPoints(string filePath)
+        {
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    foreach (SprayPoint point in sprayedPoints)
+                    {
+                        writer.WriteLine($"{point.X},{point.Y}, {point.PointColor}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLogger.LogError($"Saving Spray Points Error: {ex.Message}");
+                throw new Exception($"Error saving spray points to file: {ex.Message}");
+            }
+        }
+
+        // Method to load previously saved spray points from file
+        private void LoadSprayPoints(string originalImagePath)
+        {
+                    try
+                    {
+                        string sprayPointsFilePath = SprayHelper.GetSprayPointsFilePath(originalImagePath);
+                        if (File.Exists(sprayPointsFilePath))
+                        {
+                            List<SprayPoint> loadedSprayPoints = SprayHelper.LoadSprayPointsFromFile(sprayPointsFilePath);
+                            SprayHelper.ClearSprayedPoints(DrawingCanvas);
+                            foreach (SprayPoint Spraypoint in loadedSprayPoints)
+                            {
+                                SprayPaint(Spraypoint, "repaint");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error loading spray points: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        ErrorLogger.LogError($"Load Spray Points Error: {ex.Message}");
+                    }
+                
+        }
 
     }
 }

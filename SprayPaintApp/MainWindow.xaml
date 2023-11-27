@@ -5,25 +5,44 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SprayPaintApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="spray Paint App" Height="450" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height ="*" />
         </Grid.RowDefinitions>
 
+        <!--Toolbar-->
         <StackPanel Orientation="Horizontal" Margin="5">
             <Button Content="Open Image" Click="OpenImage_Click"/>
-            <Button Content="Spray" Click="Spray_Click" />
-            <Button Content="Erase Paint" Click="EraseButton_Click"/>
             <Button Content="Save Changes" Click="SaveChanges_Click"/>
-            <ComboBox x:Name="Colors" Width="100" SelectedIndex="0">
-                <ComboBoxItem Content="Red" />
-                <ComboBoxItem Content="Green" />
-                <ComboBoxItem Content="Blue" />
-            </ComboBox>
-            <Slider x:Name="Density" Width="100" Minimum="1" Maximum="100" Value="10" />
+
         </StackPanel>
-        <Canvas x:Name="DrawingCanvas" Grid.Row="1" Background="White" MouseDown = "DrawingCanvas_MouseDown" MouseMove="DrawingCanvas_MouseMove" MouseUp = "DrawingCanvas_MouseUp" />
+
+        <!--Controls and Canvas-->
+        <Grid Grid.Row="1" Margin="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!--Controls-->
+            <StackPanel Grid.Column="0" Background="LightGray">
+                <TextBlock Text="Spray Settings" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock Text="Color:" />
+                <ComboBox x:Name="Colors" Width="100" SelectedIndex="0">
+                    <ComboBoxItem Content="Red" />
+                    <ComboBoxItem Content="Green" />
+                    <ComboBoxItem Content="Blue" />
+                </ComboBox>
+                <TextBlock Text="Density:" Margin="0,10,0,0" />
+                <Slider x:Name="Density" Width="100" Minimum="1" Maximum="100" Value="10" />
+                <Button Content="Spray" Click="Spray_Click" />
+                <Button Content="Erase" Click="EraseButton_Click"/>
+            </StackPanel>
+            
+            <!--Canvas-->
+            <Canvas x:Name="DrawingCanvas" Grid.Column="1" Background="White" MouseDown = "DrawingCanvas_MouseDown" MouseMove="DrawingCanvas_MouseMove" MouseUp = "DrawingCanvas_MouseUp" />
+        </Grid>
     </Grid>
 </Window>
